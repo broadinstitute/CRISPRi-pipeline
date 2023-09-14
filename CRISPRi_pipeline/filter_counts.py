@@ -88,17 +88,17 @@ def main():
         description="Read in 10x h5, filter based on features and target guides"
     )
     parser.add_argument(
-        "guide_list",
-        type=str,
+        "guide_list", type=str,
         help="Tab separated file with guide name, target of guide. Columns = [guide] [target]",
     )
     parser.add_argument(
-        "NC_list", type=str, help="Tab separated table with NC names, no header."
+        "NC_list", type=str,
+        help="Tab separated table with NC names, no header."
     )
-    parser.add_argument("counts", type=str, help="h5ad file of counts")
+    parser.add_argument("counts", type=str,
+                        help="h5ad file of counts")
     parser.add_argument(
-        "feature_calls",
-        type=str,
+        "feature_calls", type=str,
         help="Feature call csv of some kind. Must contain cell_barcode and feature_call column. For now, should also contain num_features column.",
     )
     args = parser.parse_args()
@@ -119,6 +119,7 @@ def main():
     NC_names = NC_df.values.squeeze()
 
     working_guides = guide_list[~guide_list.target.isin(NC_names)].guide.values
+    # TODO: pass appropriate arguments to filter counts function
 
 
 if __name__ == "__main__":
