@@ -1,2 +1,2 @@
 # CRISPRi-pipeline
-CRISPRi Terra pipeline for QC &amp;. Analysis of CRISPRi data
+CRISPRi Terra pipeline for QC &amp; Analysis of CRISPRi data
