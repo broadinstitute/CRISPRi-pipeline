@@ -21,33 +21,35 @@ def get_cell_cycles(adata):
     return True
 
 
-def filter_try_all_counts(day_counts, day_CRISPR_counts, work_list, min_genes):
-    counts = day_counts.copy()
-    CRISPR_counts = day_CRISPR_counts.copy()
-
+def filter_try_all_counts(counts, feature_calls, guide_list, NC_names, min_genes):
     counts.var_names_make_unique()
+
     # add feature call data to anndata object
     guide_data = counts.obs.merge(
-        CRISPR_counts[["cell_barcode", "feature_call"]].set_index("cell_barcode"),
+        feature_calls[["cell_barcode", "feature_call"]].set_index("cell_barcode"),
         left_index=True,
         right_index=True,
     ).copy()
+    # add target info for each guide
+    guide_data['feature_target'] = guide_data.feature_call.map(guide_list.set_index('feature_call').feature_target)
+
     # make guide call have universal name standard '_'
     guide_data.feature_call = guide_data.feature_call.str.replace("-", "_")
 
-    ## TODO: change to be receptive to a guide list input
-    ## This is all unfinished work in progress
-    working_cells = guide_data.feature_call.isin(work_list.split(","))
+    # Mask for guides we want to treat as non-working/nontargeting/NC
+    # all will be labeled as "No_working_guide" and treated as such in analysis
+        # if a 'nontargeting' guide is not passed in the NC file, for example, it will be treated as its own 'working' targeting guide
+    NC_cells_mask = guide_data.feature_target.isin(NC_names)
     guide_data["working_features"] = np.nan
-    guide_data.working_features[working_cells] = guide_data.feature_call[
-        working_cells
-    ].str.split("_", expand=True)[0]
-    guide_data.working_features[~working_cells] = "No_working_guide"
+    guide_data.working_features[~NC_cells_mask] = guide_data.feature_target
+    guide_data.working_features[NC_cells_mask] = "No_working_guide"
+
+    # add guide info to counts object
     counts = counts[guide_data.index, :]
     counts.obs = guide_data
 
+    # filter cells
     sc.pp.filter_cells(counts, min_genes=min_genes)
-    print(counts)
     cc_counts = counts.copy()
 
     cc = get_cell_cycles(cc_counts)
@@ -56,11 +58,12 @@ def filter_try_all_counts(day_counts, day_CRISPR_counts, work_list, min_genes):
             ["S_score", "G2M_score", "phase"]
         ]
 
-    if CRISPR_counts.feature_call.str.contains("NC").any():
+    # TODO: change this nc code below
+    if feature_calls.feature_call.str.contains("NC").any():
         NC_barcodes = list(
             set(
-                CRISPR_counts.cell_barcode[
-                    CRISPR_counts.feature_call.str.contains("NC")
+                feature_calls.cell_barcode[
+                    feature_calls.feature_call.str.contains("NC")
                 ]
             )
             & set(counts.obs_names)
@@ -101,6 +104,8 @@ def main():
         "feature_calls", type=str,
         help="Feature call csv of some kind. Must contain cell_barcode and feature_call column. For now, should also contain num_features column.",
     )
+    parser.add_argument("min_genes", type=int,
+                        help="minimum # genes to keep a cell")
     args = parser.parse_args()
 
     # read in feature call csv and h5ad
@@ -114,6 +119,10 @@ def main():
 
     # Read in the names of all guides and their targets
     guide_list = pd.read_table(args.guide_list, header=True)
+    # set universal column names
+    assert len(guide_list.columns) == 2
+    guide_list.columns = ["feature_call", "feature_target"]
+
     # Read in names/categories for nontargeting/negative control guides
     NC_df = pd.read_table(args.NC_list, header=None)
     NC_names = NC_df.values.squeeze()
