@@ -58,28 +58,17 @@ def filter_try_all_counts(counts, feature_calls, guide_list, NC_names, min_genes
             ["S_score", "G2M_score", "phase"]
         ]
 
-    # TODO: change this nc code below
-    if feature_calls.feature_call.str.contains("NC").any():
-        NC_barcodes = list(
-            set(
-                feature_calls.cell_barcode[
-                    feature_calls.feature_call.str.contains("NC")
-                ]
-            )
-            & set(counts.obs_names)
-        )
-        counts.obs.replace(to_replace=r"NC.*", value="NC", regex=True, inplace=True)
-        counts_NC = counts[NC_barcodes].copy()
-        sc.pp.filter_genes(counts_NC, min_cells=counts_NC.shape[0] // 20)
-    else:
-        NC_barcodes = list(
-            set(counts.obs[counts.obs.working_features == "No_working_guide"].index)
-        )
-        counts_NC = counts[NC_barcodes].copy()
-        sc.pp.filter_genes(counts_NC, min_cells=counts_NC.shape[0] // 20)
+    # All "no working guides" are now considered NC
+    NC_barcodes = list(
+        set(counts.obs[counts.obs.working_features == "No_working_guide"].index)
+    )
+    # get a counts_NC anndata object with non-working guide cells only, for background features and other QC
+    counts_NC = counts[NC_barcodes].copy()
+    # filter genes in the NC anddata
+    sc.pp.filter_genes(counts_NC, min_cells=counts_NC.shape[0] // 20)
 
-    print(counts_NC)
     genes = list(set(counts_NC.var_names))
+    # only include genes that have good background coverage
     counts = counts[:, genes].copy()
 
     return counts, counts_NC
@@ -92,11 +81,11 @@ def main():
     )
     parser.add_argument(
         "guide_list", type=str,
-        help="Tab separated file with guide name, target of guide. Columns = [guide] [target]",
+        help="Tab & line separated file with guide name, target of guide. Columns = [guide] [target]",
     )
     parser.add_argument(
         "NC_list", type=str,
-        help="Tab separated table with NC names, no header."
+        help="Tab & line separated table with NC names, no header."
     )
     parser.add_argument("counts", type=str,
                         help="h5ad file of counts")
@@ -127,8 +116,10 @@ def main():
     NC_df = pd.read_table(args.NC_list, header=None)
     NC_names = NC_df.values.squeeze()
 
-    working_guides = guide_list[~guide_list.target.isin(NC_names)].guide.values
-    # TODO: pass appropriate arguments to filter counts function
+    final_counts, NC_counts = filter_try_all_counts(counts, feature_calls, guide_list, NC_names, args.min_genes)
+    final_counts.write_h5ad('filtered_counts.h5ad')
+    NC_counts.write_h5ad('filtered_background_counts.h5ad')
+
 
 
 if __name__ == "__main__":
