@@ -1,0 +1,10 @@
+version: 1.0
+workflows:
+   - name: "CRISPRi_pipeline"
+     subclass: WDL
+     primaryDescriptorPath: /CRISPRi_pipeline/CRISPRi_pipeline.wdl
+     filters:
+        branches:
+          - main
+        tags:
+          - /.*/
