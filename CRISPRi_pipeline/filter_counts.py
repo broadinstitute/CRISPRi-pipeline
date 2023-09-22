@@ -39,7 +39,7 @@ def filter_try_all_counts(counts, feature_calls, guide_list, NC_names, min_genes
     # Mask for guides we want to treat as non-working/nontargeting/NC
     # all will be labeled as "No_working_guide" and treated as such in analysis
         # if a 'nontargeting' guide is not passed in the NC file, for example, it will be treated as its own 'working' targeting guide
-    NC_cells_mask = guide_data.feature_target.isin(NC_names)
+    NC_cells_mask = guide_data.feature_call.isin(NC_names)
     guide_data["working_features"] = np.nan
     guide_data.working_features[~NC_cells_mask] = guide_data.feature_target
     guide_data.working_features[NC_cells_mask] = "No_working_guide"
