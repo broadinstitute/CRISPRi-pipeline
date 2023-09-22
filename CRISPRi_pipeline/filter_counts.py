@@ -5,7 +5,7 @@ import argparse
 
 
 def get_cell_cycles(adata):
-    cell_cycle_genes = [x.strip() for x in open("regev_lab_cell_cycle_genes.txt")]
+    cell_cycle_genes = [x.strip() for x in open("../CRISPRi_pipeline/data/regev_lab_cell_cycle_genes.txt")]
     s_genes = cell_cycle_genes[:43]
     g2m_genes = cell_cycle_genes[43:]
     cell_cycle_genes = [x for x in cell_cycle_genes if x in adata.var_names]
@@ -22,6 +22,7 @@ def get_cell_cycles(adata):
 
 
 def filter_try_all_counts(counts, feature_calls, guide_list, NC_names, min_genes):
+    print("Make variable names unique")
     counts.var_names_make_unique()
 
     # add feature call data to anndata object
@@ -29,29 +30,32 @@ def filter_try_all_counts(counts, feature_calls, guide_list, NC_names, min_genes
         feature_calls[["cell_barcode", "feature_call"]].set_index("cell_barcode"),
         left_index=True,
         right_index=True,
-    ).copy()
+    )
+    print("Adding target info")
     # add target info for each guide
     guide_data['feature_target'] = guide_data.feature_call.map(guide_list.set_index('feature_call').feature_target)
-
-    # make guide call have universal name standard '_'
-    guide_data.feature_call = guide_data.feature_call.str.replace("-", "_")
 
     # Mask for guides we want to treat as non-working/nontargeting/NC
     # all will be labeled as "No_working_guide" and treated as such in analysis
         # if a 'nontargeting' guide is not passed in the NC file, for example, it will be treated as its own 'working' targeting guide
     NC_cells_mask = guide_data.feature_call.isin(NC_names)
     guide_data["working_features"] = np.nan
-    guide_data.working_features[~NC_cells_mask] = guide_data.feature_target
-    guide_data.working_features[NC_cells_mask] = "No_working_guide"
+    guide_data.loc[:, "working_features"][~NC_cells_mask] = guide_data.feature_target
+    guide_data.loc[:, "working_features"][NC_cells_mask] = "No_working_guide"
+    # make guide call have universal name standard '_'
+    guide_data.feature_call = guide_data.feature_call.str.replace("-", "_")
+
 
     # add guide info to counts object
     counts = counts[guide_data.index, :]
     counts.obs = guide_data
 
     # filter cells
+    print("Filtering cells based on number of genes")
     sc.pp.filter_cells(counts, min_genes=min_genes)
     cc_counts = counts.copy()
 
+    print("Getting cell cycle data")
     cc = get_cell_cycles(cc_counts)
     if cc:
         counts.obs[["S_score", "G2M_score", "phase"]] = cc_counts.obs[
@@ -98,7 +102,7 @@ def main():
     args = parser.parse_args()
 
     # read in feature call csv and h5ad
-    feature_calls = pd.read_csv(args.feature_call)
+    feature_calls = pd.read_csv(args.feature_calls)
     counts = sc.read_10x_h5(args.counts)
 
     # for now, filter to cells with only one feature call
@@ -119,6 +123,8 @@ def main():
     final_counts, NC_counts = filter_try_all_counts(counts, feature_calls, guide_list, NC_names, args.min_genes)
     final_counts.write_h5ad('filtered_counts.h5ad')
     NC_counts.write_h5ad('filtered_background_counts.h5ad')
+    print("Done.")
+
 
 
 

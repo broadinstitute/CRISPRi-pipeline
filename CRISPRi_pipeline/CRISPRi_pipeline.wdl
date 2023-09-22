@@ -37,6 +37,7 @@ task read_counts_and_filter {
     String filtered_feature_bc_matrix_path = directory_10x + "/filtered_feature_bc_matrix.h5"
 
     command {
+        set -ex
         (git clone https://github.com/broadinstitute/CRISPRi-pipeline.git /app ; cd /app)
         gsutil cp ${crispr_analysis_path} crispr_analysis.tar.gz
         gsutil cp ${filtered_feature_bc_matrix_path} filtered_feature_bc_matrix.h5
