@@ -107,13 +107,13 @@ def main():
     feature_calls = feature_calls[feature_calls.cell_barcode.isin(counts.obs_names)]
 
     # Read in the names of all guides and their targets
-    guide_list = pd.read_table(args.guide_list, header=True)
+    guide_list = pd.read_table(args.guide_list, header=0, index_col=0)
     # set universal column names
     assert len(guide_list.columns) == 2
     guide_list.columns = ["feature_call", "feature_target"]
 
     # Read in names/categories for nontargeting/negative control guides
-    NC_df = pd.read_table(args.NC_list, header=None)
+    NC_df = pd.read_table(args.NC_list, header=None, index_col=0)
     NC_names = NC_df.values.squeeze()
 
     final_counts, NC_counts = filter_try_all_counts(counts, feature_calls, guide_list, NC_names, args.min_genes)
