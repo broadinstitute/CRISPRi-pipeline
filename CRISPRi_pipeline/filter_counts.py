@@ -22,7 +22,7 @@ def get_cell_cycles(adata):
 
 
 def filter_try_all_counts(counts, feature_calls, guide_list, NC_names, min_genes):
-    print("Make variable names unique")
+    print("Making variable names unique")
     counts.var_names_make_unique()
 
     # add feature call data to anndata object
