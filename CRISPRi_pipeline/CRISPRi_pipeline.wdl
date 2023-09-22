@@ -19,8 +19,8 @@ workflow CRISPRi_pipeline {
     }
 
     output {
-        File read_counts_and_filter.counts_h5ad
-        File read_counts_and_filter.background_counts_h5ad
+        File counts_h5ad=read_counts_and_filter.counts_h5ad
+        File background_counts_h5ad=read_counts_and_filter.background_counts_h5ad
     }
 }
 
