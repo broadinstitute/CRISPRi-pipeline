@@ -8,5 +8,4 @@ ENV PATH=$PATH:/app
 COPY requirements.txt .
 RUN pip3 install --break-system-packages -r requirements.txt
 
-COPY CRISPRi_pipeline ./CRISPRi_pipeline
 WORKDIR /app

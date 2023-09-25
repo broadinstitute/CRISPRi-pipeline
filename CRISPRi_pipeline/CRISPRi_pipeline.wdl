@@ -6,7 +6,7 @@ workflow CRISPRi_pipeline {
         File guide_list
         File NC_list
         Int genes_per_cell_threshold=200
-        String docker_image = 'us.gcr.io/landerlab-atacseq-200218/crispri_pipeline:0.2'
+        String docker_image = 'us.gcr.io/landerlab-atacseq-200218/crispri_pipeline:0.3'
     }
 
     call read_counts_and_filter {
@@ -38,13 +38,11 @@ task read_counts_and_filter {
 
     command {
         set -ex
-        mkdir -p /app/checkout
-        (git clone https://github.com/broadinstitute/CRISPRi-pipeline.git /app/checkout ; cd /app/checkout)
-        cd app/checkout
+        (git clone https://github.com/broadinstitute/CRISPRi-pipeline.git /app ; cd /app)
         gsutil cp ${crispr_analysis_path} crispr_analysis.tar.gz
         gsutil cp ${filtered_feature_bc_matrix_path} filtered_feature_bc_matrix.h5
         tar -xf crispr_analysis.tar.gz protospacer_calls_per_cell.csv
-        python3 -u CRISPRi_pipeline/filter_counts.py ${guide_list} ${NC_list} filtered_feature_bc_matrix.h5 protospacer_calls_per_cell.csv ${genes_per_cell_threshold}
+        python3 -u /app/CRISPRi_pipeline/filter_counts.py ${guide_list} ${NC_list} filtered_feature_bc_matrix.h5 protospacer_calls_per_cell.csv ${genes_per_cell_threshold}
     }
     output {
         File counts_h5ad = "filtered_counts.h5ad"
