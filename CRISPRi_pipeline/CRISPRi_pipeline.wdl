@@ -6,7 +6,7 @@ workflow CRISPRi_pipeline {
         File guide_list
         File NC_list
         Int genes_per_cell_threshold=200
-        String docker_image = 'us.gcr.io/landerlab-atacseq-200218/crispri_pipeline:0.3'
+        String docker_image = 'us.gcr.io/landerlab-atacseq-200218/crispri_pipeline:0.4'
     }
 
     call read_counts_and_filter {
